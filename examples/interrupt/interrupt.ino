@@ -2,15 +2,15 @@
  * Demonstrates the use of interrupt functionality of the MAX7315.
  *
  * You need to connect:
- * LED to MAX7315 IO pin 0
- * Button to MAX7315 IO pin 1
+ * LED to MAX7315 IO pin 4
+ * Button to MAX7315 IO pin 0
  * MAX7315 INT pin to D4 pin
  */
-
+#include <Wire.h>
 #include "MAX7315.h"
 
-#define GPIO_PIN_LED           0  // LED connected to GPIO-0 as output
-#define GPIO_PIN_BUTTON        1  // Button connected to GPIO-1 as input
+#define GPIO_PIN_LED           4  // LED connected to GPIO-0 as output
+#define GPIO_PIN_BUTTON        0  // Button connected to GPIO-1 as input
 #define PIN_INTERRUPT          4  // Interrupt pin
 
 MAX7315 gpio;
@@ -26,13 +26,13 @@ void io() {
   lastDebounceTime = millis();
 }
 
-// Helps ensure the application loop is not interrupted by the system
-// background processing and network management.
-SYSTEM_THREAD(ENABLED);
 
 void setup() {
   Serial.begin(115200);
   gpio.begin();
+
+  Wire.begin();
+  Wire.setClock(400000);
 
   gpio.pinMode(GPIO_PIN_LED, OUTPUT);
   gpio.pinMode(GPIO_PIN_BUTTON, INPUT);

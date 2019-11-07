@@ -2,14 +2,14 @@
  * Demonstrates the use of simple input/output functionality of the MAX7315.
  *
  * You need to connect:
- * LED to MAX7315 IO pin 0
- * Button to MAX7315 IO pin 1
+ * LED to MAX7315 IO pin 4
+ * Button to MAX7315 IO pin 0
  */
-
+#include <Wire.h>
 #include "MAX7315.h"
 
-#define GPIO_PIN_LED           0  // LED connected to GPIO-0 as output
-#define GPIO_PIN_BUTTON        1  // Button connected to GPIO-1 as input
+#define GPIO_PIN_LED           4  // LED connected to GPIO-0 as output
+#define GPIO_PIN_BUTTON        0  // Button connected to GPIO-1 as input
 
 MAX7315 gpio;
 // Last time the output pin was toggled
@@ -19,11 +19,10 @@ unsigned long debounceDelay = 25;
 // Default button status for debouncing
 uint8_t lastButtonStatus = HIGH;
 
-// Helps ensure the application loop is not interrupted by the system
-// background processing and network management.
-SYSTEM_THREAD(ENABLED);
-
 void setup() {
+  Wire.begin();
+  Wire.setClock(400000);
+
   gpio.begin();
 
   gpio.pinMode(GPIO_PIN_LED, OUTPUT);
