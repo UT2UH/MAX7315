@@ -77,12 +77,24 @@ public:
    */
   void digitalWrite(uint8_t pin, uint8_t value);
   
+  /**
+   * Set PWM intensity to a digital pin.
+   *
+   * @param {uint8_t} pin - Pin number whose value you wish to set.
+   * @param {uint8_t} value - Pin value.
+   * @param {uint8_t} phase0 - Phase0 register bit, either HIGH or LOW.
+   */
+  void setIntensity(uint8_t pin, uint8_t value, uint8_t phase);  
 
 private:
-  TwoWire *_i2cPort;//The generic connection to user's chosen I2C hardware
-  uint8_t _i2caddr; // I2C address of the device
-  uint8_t _port;    // Port configuration status on Configuration register
-  uint8_t _leds;	// Ports with PWM enabled
+  TwoWire *_i2cPort; //The generic connection to user's chosen I2C hardware
+  uint8_t _i2caddr;  // I2C address of the device
+  uint8_t _port;     // Port configuration status on Configuration register
+  uint8_t _phase0;
+  uint8_t _phase1;
+  uint8_t _masterO8;
+  uint8_t _config;   // Configuration register  
+  uint8_t _intensVal[4] = {0xFF, 0xFF, 0xFF, 0xFF}; //Ports PWM values
 };
 
 #endif

@@ -1,9 +1,13 @@
 #include "MAX7315.h"
 
 MAX7315::MAX7315() {
-  _i2caddr = 0x20;
-  _port = 0;
-  _leds = 0;
+  _i2caddr  = 0x20;
+  _port     = 0xFF;
+  _phase0   = 0xFF;
+  _phase1   = 0xFF;
+  _masterO8 = 0x0F;
+  _config   = 0x0C;
+  _intensVal[4];
 }
 
 void MAX7315::begin(TwoWire &wirePort, uint8_t i2caddr) {
@@ -65,17 +69,120 @@ void MAX7315::digitalWrite(uint8_t pin, uint8_t value) {
   switch (value) {
     case HIGH:
       // Set the pin HIGH on the output register
-      _port |= (1 << pin);
+      _phase0 |= (1 << pin);
       break;
     case LOW:
     default:
       // Set the pin LOW on the output register
-      _port &= ~(1 << pin);
+      _phase0 &= ~(1 << pin);
       break;
   }
   // Write the status of the pins on the output register
   _i2cPort->beginTransmission(_i2caddr);
   _i2cPort->write(MAX7315_BLINK_PHASE0);
+  _i2cPort->write(_phase0);
+  _i2cPort->endTransmission();
+}
+
+// Valid pin numbers - 0-8, 10, 32, 54, 76
+void MAX7315::setIntensity(uint8_t pin, uint8_t value, uint8_t phase) {
+  uint8_t intensReg = 0;  
+  uint8_t intensity = 0;
+  uint8_t offset    = 0;
+  uint8_t mask      = 0;
+
+  // Put value's MSB to MasterO8 register
+  _masterO8   = (_masterO8 & 0x0F) | (value & 0xF0);
+
+  if (pin <= 7) {                            // Pins 0-7
+    // Clear the pin on the configuration register for output
+    mask = ~(1 << pin);
+    // Choose intensity register  
+    offset = (pin >> 1);     
+    // Put value's 4 LSB to Output intensity register
+    if ((pin & 1) == 1) {
+      _intensVal[offset] = (_intensVal[offset] & 0x0F) | (value << 4);      //odd      
+    } else {
+      _intensVal[offset] = (_intensVal[offset] & 0xF0) | (value & 0x0F);    //0,2,4,6 
+    }
+
+  } else if (pin == 8) {                      // Pin O8
+    // Put value's 4 LSB to O8/Global intensity register
+    _masterO8 = (_masterO8 & 0xF0) | (value & 0x0F);
+    intensity = _intensVal[0];
+    offset = 0;
+    _config &= 0xF7;                          // O8 is not Int
+  } else {                                    // Pin pairs: 10, 32, 54, 76
+    intensity = (value << 4) | (value & 0x0F); //duplicate four LSB value  
+    switch (pin) {
+      case 10:
+        mask = 0xFC;
+        offset = 0;
+        break;
+      case 32:
+        mask = 0xF3;
+        offset = 1;           
+        break;    
+      case 54:
+        mask = 0xCF;
+        offset = 2;          
+        break;    
+      case 76:    
+        mask = 0x3F;
+        offset = 3;          
+        break;
+      default:
+        mask = 0xFF;                       //Do not change anything TODO return eror
+        offset = 0;
+        intensity = _intensVal[0];
+        break;
+    }
+    _intensVal[offset] = intensity;
+  }
+
+  intensity = _intensVal[offset];
+  intensReg = MAX7315_INTENSITY_P1P0 + offset;
+  if(phase == LOW ){
+    _phase0 &= mask;                    // Increase output(s) PWM intensity with @value increasing
+  } else {
+    _phase0 |= ~mask;
+  }
+  _config &= 0xF8;                   // Disable Blink and Global Intensity
+  _port &= mask;
+
+  // Write the status of the pins on the output register
+  _i2cPort->beginTransmission(_i2caddr);
+  _i2cPort->write(MAX7315_PORTS_CONFIG);
   _i2cPort->write(_port);
   _i2cPort->endTransmission();
+
+  _i2cPort->beginTransmission(_i2caddr);
+  _i2cPort->write(MAX7315_INTENSITY_O8);
+  _i2cPort->write(_masterO8);             // enable OSC and set Master Intensity to 15/15
+  _i2cPort->endTransmission();
+  
+  _i2cPort->beginTransmission(_i2caddr);  
+  _i2cPort->write(MAX7315_CONFIGURATION);
+  _i2cPort->write(_config);                 //Disable Blink, Set individual intensity control
+  _i2cPort->endTransmission();
+
+  _i2cPort->beginTransmission(_i2caddr);  
+  _i2cPort->write(MAX7315_BLINK_PHASE0);
+  _i2cPort->write(_phase0);                 //PWM time greatest when value in PWMIntensity is low when BlinkPhase0 is 1s
+  _i2cPort->endTransmission();
+
+  _i2cPort->beginTransmission(_i2caddr);  
+  _i2cPort->write(intensReg);  
+  _i2cPort->write(intensity);             //Initially all lights half intensity  now on off
+  _i2cPort->endTransmission();
+
+  Serial.print(pin,DEC); Serial.print(" ");
+  Serial.print(mask,HEX); Serial.print(" ");
+  Serial.print(value,HEX); Serial.print(" ");
+  Serial.print(_masterO8,HEX); Serial.print(" ");
+  Serial.print(_phase0,HEX); Serial.print("  ");
+  Serial.print(_intensVal[3],HEX); Serial.print(" ");  
+  Serial.print(_intensVal[2],HEX); Serial.print(" "); 
+  Serial.print(_intensVal[1],HEX); Serial.print(" ");
+  Serial.print(_intensVal[0],HEX); Serial.println();  
 }
