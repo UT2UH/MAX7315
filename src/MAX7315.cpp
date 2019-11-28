@@ -175,7 +175,7 @@ void MAX7315::setIntensity(uint8_t pin, uint8_t value, uint8_t phase) {
   _i2cPort->write(intensReg);  
   _i2cPort->write(intensity);             //Initially all lights half intensity  now on off
   _i2cPort->endTransmission();
-
+  /*
   Serial.print(pin,DEC); Serial.print(" ");
   Serial.print(mask,HEX); Serial.print(" ");
   Serial.print(value,HEX); Serial.print(" ");
@@ -184,5 +184,6 @@ void MAX7315::setIntensity(uint8_t pin, uint8_t value, uint8_t phase) {
   Serial.print(_intensVal[3],HEX); Serial.print(" ");  
   Serial.print(_intensVal[2],HEX); Serial.print(" "); 
   Serial.print(_intensVal[1],HEX); Serial.print(" ");
-  Serial.print(_intensVal[0],HEX); Serial.println();  
+  Serial.println(_intensVal[0],HEX);
+  */
 }
